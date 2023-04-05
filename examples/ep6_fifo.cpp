@@ -19,7 +19,9 @@ int main(int argc, char const *argv[])
     dev->print_devices();
 
     // load firmware
-    dev->load_firmware("port_b_fifo_ep6.ihx");
+    const std::string filename("fifo_ep6_ports_bd.ihx");
+    // const std::string filename("port_b_fifo_ep6.ihx");
+    dev->load_firmware(filename);
 
     auto prev = std::chrono::high_resolution_clock::now();
     auto next = std::chrono::high_resolution_clock::now();
@@ -35,13 +37,16 @@ int main(int argc, char const *argv[])
             // std::cout << received_count << std::endl;
             auto now = std::chrono::high_resolution_clock::now();
             if (counter++ % 100 == 0)
-                std::cout << (now - prev).count() * 1e-3 << std::endl;
-            for (size_t i = 0; i < 512; i++)
             {
-                std::cout << std::bitset<8>(in_buffer[0]) << "\n";
+                std::cout << ((now - prev).count() * 1e-6) << std::endl;
+                for (size_t i = 0; i < 512; i += 2)
+                {
+                    std::cout << "PB" <<std::bitset<8>(in_buffer[i]) << " PD"
+                              << std::bitset<8>(in_buffer[i + 1]) << "\n";
+                    //     std::cout << std::hex << (in_buffer[i]<<8 | in_buffer[i + 1]) << "\n";
+                }
+                std::cout << std::endl;
             }
-
-            std::cout << std::endl;
 
             prev = now;
         }
