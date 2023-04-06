@@ -188,10 +188,10 @@ public:
      * @param length
      * @return int returns number of bytes received
      */
-    int ep6_bulkin(unsigned char *buffer, const int length = 512)
+    int ep6_bulkin(unsigned char *buffer, const int length = 512, const unsigned int timeout = 100)
     {
         int received_count;
-        if (libusb_bulk_transfer(_handle, 0x86, buffer, length, &received_count, 100) < 0) // receive reply
+        if (libusb_bulk_transfer(_handle, 0x86, buffer, length, &received_count, timeout) < 0) // receive reply
         {
             return -1;
         }
