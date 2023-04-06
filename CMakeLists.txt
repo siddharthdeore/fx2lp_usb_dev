@@ -1,16 +1,18 @@
+
+
 cmake_minimum_required(VERSION 3.14)
-project(FX2)
+project(FX2APPS LANGUAGES CXX)
 
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
-
-# copy firmare file to binary
-file(GLOB FIRWARE_HEX_FILES ${CMAKE_CURRENT_SOURCE_DIR}/firmwares/*.ihx)
-file(COPY ${FIRWARE_HEX_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
+set(CMAKE_CXX_STANDARD 14)
 
 include_directories("include")
 
 add_executable(loader examples/loader.cpp)
 target_link_libraries(loader usb-1.0 usb)
 
-add_executable(ep6_fifo examples/ep6_fifo.cpp)
-target_link_libraries(ep6_fifo usb-1.0 usb)
+
+add_executable(FIFO_EP6 examples/fifo_ep6.cpp)
+target_link_libraries(FIFO_EP6 usb-1.0 usb)
+
