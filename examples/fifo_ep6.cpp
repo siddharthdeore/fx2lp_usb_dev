@@ -35,23 +35,24 @@ int main(int argc, char const *argv[])
         int received_count = dev->ep6_bulkin(in_buffer, N);
         if (received_count > 0)
         {
-            if (counter++ % 100== 0)
+            //if (counter++ % 100== 0)
             {
                 unsigned int val;
                 for (size_t i = 0; i < N / 2; i += 2)
                 {
                     val = (in_buffer[i] << 8 | in_buffer[i + 1]);
 
-                    // if (val != prev_val)
+                    if (val != prev_val)
                     {
-                        // now = std::chrono::high_resolution_clock::now();
-                        // std::cout << std::bitset<16>(val) << " " << (now - wall).count() * 1e-9 << "sec\n";
-                        // prev_val = val;
+                        now = std::chrono::high_resolution_clock::now();
+                        std::cout << std::bitset<16>(val) << " " << std::fixed<< 100 - (now - prev).count() * 1e-6 << " sec\n";
+                        prev = now;
+                        prev_val = val;
                     }
                 }
-                now = std::chrono::high_resolution_clock::now();
-                std::cout << std::bitset<16>(val) << " " << (now - wall).count() * 1e-9 << "sec\n";
-                prev_val = val;
+                // now = std::chrono::high_resolution_clock::now();
+                // std::cout << std::bitset<16>(val) << " " << (now - wall).count() * 1e-9 << "sec\n";
+                // prev_val = val;
             }
         }
     }

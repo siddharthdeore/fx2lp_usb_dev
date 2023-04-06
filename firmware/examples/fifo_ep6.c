@@ -29,7 +29,7 @@ void toggle_led(void)
 void timer0_isr() __interrupt TF0_ISR
 {
     // toogle led after every 10 iterations
-    if (t0_counter++ == 5)
+    if (++t0_counter == 10)
     {
         toggle_led();
         t0_counter = 0;
@@ -121,18 +121,14 @@ void main(void)
             for (int i = 0; i < 512; i += 2)
             {
                 EP6FIFOBUF[i] = IOB;
-                SYNCDELAY2;
                 EP6FIFOBUF[i + 1] = IOD;
-                SYNCDELAY2;
             }
 
             // Arm the endpoint. Be sure to set BCH before BCL because BCL access
             // actually arms the endpoint.
             // SYNCDELAY4;
             EP6BCH = 0x02; // commit 512 bytes
-            SYNCDELAY4;
             EP6BCL = 0x00;
-            SYNCDELAY4;
         }
     }
 }
