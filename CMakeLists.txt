@@ -16,3 +16,6 @@ target_link_libraries(loader usb-1.0 usb)
 add_executable(FIFO_EP6 examples/fifo_ep6.cpp)
 target_link_libraries(FIFO_EP6 usb-1.0 usb)
 
+add_executable(sigrok examples/sigrok.cpp)
+target_link_libraries(sigrok usb-1.0 usb)
+

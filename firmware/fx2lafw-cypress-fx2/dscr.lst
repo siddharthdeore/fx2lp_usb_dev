@@ -1,0 +1,322 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Intel 8051), page 1.
+Hexadecimal [24-Bits]
+
+
+
+                                      1 ;;
+                                      2 ;; This file is part of the sigrok-firmware-fx2lafw project.
+                                      3 ;;
+                                      4 ;; Copyright (C) 2011-2012 Uwe Hermann <uwe@hermann-uwe.de>
+                                      5 ;; Copyright (C) 2012 Joel Holdsworth <joel@airwebreathe.org.uk>
+                                      6 ;;
+                                      7 ;; This program is free software; you can redistribute it and/or modify
+                                      8 ;; it under the terms of the GNU General Public License as published by
+                                      9 ;; the Free Software Foundation; either version 2 of the License, or
+                                     10 ;; (at your option) any later version.
+                                     11 ;;
+                                     12 ;; This program is distributed in the hope that it will be useful,
+                                     13 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+                                     14 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+                                     15 ;; GNU General Public License for more details.
+                                     16 ;;
+                                     17 ;; You should have received a copy of the GNU General Public License
+                                     18 ;; along with this program; if not, see <http://www.gnu.org/licenses/>.
+                                     19 ;;
+                                     20 
+                           00B404    21 VID = 0xb404	; Manufacturer ID (0x04b4)
+                           001386    22 PID = 0x1386	; Product ID (0x8613)
+                                     23 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Intel 8051), page 2.
+Hexadecimal [24-Bits]
+
+
+
+                                     24 .include "dscr.inc"
+                                      1 ;;
+                                      2 ;; This file is part of the sigrok-firmware-fx2lafw project.
+                                      3 ;;
+                                      4 ;; Copyright (C) 2011-2012 Uwe Hermann <uwe@hermann-uwe.de>
+                                      5 ;; Copyright (C) 2012 Joel Holdsworth <joel@airwebreathe.org.uk>
+                                      6 ;;
+                                      7 ;; This program is free software; you can redistribute it and/or modify
+                                      8 ;; it under the terms of the GNU General Public License as published by
+                                      9 ;; the Free Software Foundation; either version 2 of the License, or
+                                     10 ;; (at your option) any later version.
+                                     11 ;;
+                                     12 ;; This program is distributed in the hope that it will be useful,
+                                     13 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+                                     14 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+                                     15 ;; GNU General Public License for more details.
+                                     16 ;;
+                                     17 ;; You should have received a copy of the GNU General Public License
+                                     18 ;; along with this program; if not, see <http://www.gnu.org/licenses/>.
+                                     19 ;;
+                                     20 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Intel 8051), page 3.
+Hexadecimal [24-Bits]
+
+
+
+                                     21 .include "common.inc"
+                                      1 ;;
+                                      2 ;; This file is part of the sigrok-firmware-fx2lafw project.
+                                      3 ;;
+                                      4 ;; Copyright (C) 2016 Stefan Brüns <stefan.bruens@rwth-aachen.de>
+                                      5 ;;
+                                      6 ;; This program is free software; you can redistribute it and/or modify
+                                      7 ;; it under the terms of the GNU General Public License as published by
+                                      8 ;; the Free Software Foundation; either version 2 of the License, or
+                                      9 ;; (at your option) any later version.
+                                     10 ;;
+                                     11 ;; This program is distributed in the hope that it will be useful,
+                                     12 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+                                     13 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+                                     14 ;; GNU General Public License for more details.
+                                     15 ;;
+                                     16 ;; You should have received a copy of the GNU General Public License
+                                     17 ;; along with this program; if not, see <http://www.gnu.org/licenses/>.
+                                     18 ;;
+                                     19 
+                                     20 .macro string_descriptor_a n,str
+                                     21 _string'n:
+                                     22 	.nchr	len,"'str"
+                                     23 	.db	len * 2 + 2
+                                     24 	.db	3
+                                     25 	.irpc	i,^"'str"
+                                     26 		.db	''i, 0
+                                     27 	.endm
+                                     28 .endm
+                                     29 
+                                     30 .macro string_descriptor_lang n,l
+                                     31 _string'n:
+                                     32 	.db	4
+                                     33 	.db	3
+                                     34 	.dw	>l + (<l * 0x100)
+                                     35 .endm
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Intel 8051), page 4.
+Hexadecimal [24-Bits]
+
+
+
+                                     22 
+                                     23 .module DEV_DSCR
+                                     24 
+                                     25 ; Descriptor types
+                           000001    26 DSCR_DEVICE_TYPE	= 1
+                           000002    27 DSCR_CONFIG_TYPE	= 2
+                           000003    28 DSCR_STRING_TYPE	= 3
+                           000004    29 DSCR_INTERFACE_TYPE	= 4
+                           000005    30 DSCR_ENDPOINT_TYPE	= 5
+                           000006    31 DSCR_DEVQUAL_TYPE	= 6
+                                     32 
+                                     33 ; Descriptor lengths
+                           000009    34 DSCR_INTERFACE_LEN	= 9
+                           000007    35 DSCR_ENDPOINT_LEN	= 7
+                                     36 
+                                     37 ; Endpoint types
+                           000000    38 ENDPOINT_TYPE_CONTROL	= 0
+                           000001    39 ENDPOINT_TYPE_ISO	= 1
+                           000002    40 ENDPOINT_TYPE_BULK	= 2
+                           000003    41 ENDPOINT_TYPE_INT	= 3
+                                     42 
+                                     43 .globl _dev_dscr, _dev_qual_dscr, _highspd_dscr, _fullspd_dscr, _dev_strings, _dev_strings_end
+                                     44 .area DSCR_AREA (CODE)
+                                     45 
+                                     46 ; -----------------------------------------------------------------------------
+                                     47 ; Device descriptor
+                                     48 ; -----------------------------------------------------------------------------
+      000000                         49 _dev_dscr:
+      000000 12                      50 	.db	dev_dscr_end - _dev_dscr
+      000001 01                      51 	.db	DSCR_DEVICE_TYPE
+      000002 00 02                   52 	.dw	0x0002			; USB 2.0
+      000004 FF                      53 	.db	0xff			; Class (vendor specific)
+      000005 FF                      54 	.db	0xff			; Subclass (vendor specific)
+      000006 FF                      55 	.db	0xff			; Protocol (vendor specific)
+      000007 40                      56 	.db	64			; Max. EP0 packet size
+      000008 B4 04                   57 	.dw	VID			; Manufacturer ID
+      00000A 13 86                   58 	.dw	PID			; Product ID
+      00000C 01 00                   59 	.dw	0x0100			; Product version (0.01)
+      00000E 01                      60 	.db	1			; Manufacturer string index
+      00000F 02                      61 	.db	2			; Product string index
+      000010 03                      62 	.db	3			; Serial number string index (none)
+      000011 01                      63 	.db	1			; Number of configurations
+      000012                         64 dev_dscr_end:
+                                     65 
+                                     66 ; -----------------------------------------------------------------------------
+                                     67 ; Device qualifier (for "other device speed")
+                                     68 ; -----------------------------------------------------------------------------
+      000012                         69 _dev_qual_dscr:
+      000012 0A                      70 	.db	dev_qualdscr_end - _dev_qual_dscr
+      000013 06                      71 	.db	DSCR_DEVQUAL_TYPE
+      000014 00 02                   72 	.dw	0x0002			; USB 2.0
+      000016 FF                      73 	.db	0xff			; Class (vendor specific)
+      000017 FF                      74 	.db	0xff			; Subclass (vendor specific)
+      000018 FF                      75 	.db	0xff			; Protocol (vendor specific)
+      000019 40                      76 	.db	64			; Max. EP0 packet size
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Intel 8051), page 5.
+Hexadecimal [24-Bits]
+
+
+
+      00001A 01                      77 	.db	1			; Number of configurations
+      00001B 00                      78 	.db	0			; Extra reserved byte
+      00001C                         79 dev_qualdscr_end:
+                                     80 
+                                     81 ; -----------------------------------------------------------------------------
+                                     82 ; High-Speed configuration descriptor
+                                     83 ; -----------------------------------------------------------------------------
+      00001C                         84 _highspd_dscr:
+      00001C 09                      85 	.db	highspd_dscr_end - _highspd_dscr
+      00001D 02                      86 	.db	DSCR_CONFIG_TYPE
+                                     87 	; Total length of the configuration (1st line LSB, 2nd line MSB)
+      00001E 19                      88 	.db	(highspd_dscr_realend - _highspd_dscr) % 256
+      00001F 00                      89 	.db	(highspd_dscr_realend - _highspd_dscr) / 256
+      000020 01                      90 	.db	1			; Number of interfaces
+      000021 01                      91 	.db	1			; Configuration number
+      000022 00                      92 	.db	0			; Configuration string (none)
+      000023 80                      93 	.db	0x80			; Attributes (bus powered, no wakeup)
+      000024 32                      94 	.db	0x32			; Max. power (100mA)
+      000025                         95 highspd_dscr_end:
+                                     96 
+                                     97 	; Interfaces (only one in our case)
+      000025 09                      98 	.db	DSCR_INTERFACE_LEN
+      000026 04                      99 	.db	DSCR_INTERFACE_TYPE
+      000027 00                     100 	.db	0			; Interface index
+      000028 00                     101 	.db	0			; Alternate setting index
+      000029 01                     102 	.db	1			; Number of endpoints
+      00002A FF                     103 	.db	0xff			; Class (vendor specific)
+      00002B FF                     104 	.db	0xff			; Subclass (vendor specific)
+      00002C FF                     105 	.db	0xff			; Protocol (vendor specific)
+      00002D 00                     106 	.db	0			; String index (none)
+                                    107 
+                                    108 	; Endpoint 2 (IN)
+      00002E 07                     109 	.db	DSCR_ENDPOINT_LEN
+      00002F 05                     110 	.db	DSCR_ENDPOINT_TYPE
+      000030 82                     111 	.db	0x82			; EP number (2), direction (IN)
+      000031 02                     112 	.db	ENDPOINT_TYPE_BULK	; Endpoint type (bulk)
+      000032 00                     113 	.db	0x00			; Max. packet size, LSB (512 bytes)
+      000033 02                     114 	.db	0x02			; Max. packet size, MSB (512 bytes)
+      000034 00                     115 	.db	0x00			; Polling interval (ignored for bulk)
+                                    116 
+      000035                        117 highspd_dscr_realend:
+                                    118 
+      000036                        119 	.even
+                                    120 
+                                    121 ; -----------------------------------------------------------------------------
+                                    122 ; Full-Speed configuration descriptor
+                                    123 ; -----------------------------------------------------------------------------
+      000036                        124 _fullspd_dscr:
+      000036 09                     125 	.db	fullspd_dscr_end - _fullspd_dscr
+      000037 02                     126 	.db	DSCR_CONFIG_TYPE
+                                    127 	; Total length of the configuration (1st line LSB, 2nd line MSB)
+      000038 19                     128 	.db	(fullspd_dscr_realend - _fullspd_dscr) % 256
+      000039 00                     129 	.db	(fullspd_dscr_realend - _fullspd_dscr) / 256
+      00003A 01                     130 	.db	1			; Number of interfaces
+      00003B 01                     131 	.db	1			; Configuration number
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Intel 8051), page 6.
+Hexadecimal [24-Bits]
+
+
+
+      00003C 00                     132 	.db	0			; Configuration string (none)
+      00003D 80                     133 	.db	0x80			; Attributes (bus powered, no wakeup)
+      00003E 32                     134 	.db	0x32			; Max. power (100mA)
+      00003F                        135 fullspd_dscr_end:
+                                    136 
+                                    137 	; Interfaces (only one in our case)
+      00003F 09                     138 	.db	DSCR_INTERFACE_LEN
+      000040 04                     139 	.db	DSCR_INTERFACE_TYPE
+      000041 00                     140 	.db	0			; Interface index
+      000042 00                     141 	.db	0			; Alternate setting index
+      000043 01                     142 	.db	1			; Number of endpoints
+      000044 FF                     143 	.db	0xff			; Class (vendor specific)
+      000045 FF                     144 	.db	0xff			; Subclass (vendor specific)
+      000046 FF                     145 	.db	0xff			; Protocol (vendor specific)
+      000047 00                     146 	.db	0			; String index (none)
+                                    147 
+                                    148 	; Endpoint 2 (IN)
+      000048 07                     149 	.db	DSCR_ENDPOINT_LEN
+      000049 05                     150 	.db	DSCR_ENDPOINT_TYPE
+      00004A 82                     151 	.db	0x82			; EP number (2), direction (IN)
+      00004B 02                     152 	.db	ENDPOINT_TYPE_BULK	; Endpoint type (bulk)
+      00004C 40                     153 	.db	0x40			; Max. packet size, LSB (64 bytes)
+      00004D 00                     154 	.db	0x00			; Max. packet size, MSB (64 bytes)
+      00004E 00                     155 	.db	0x00			; Polling interval (ignored for bulk)
+                                    156 
+      00004F                        157 fullspd_dscr_realend:
+                                    158 
+      000050                        159 	.even
+                                    160 
+                                    161 ; -----------------------------------------------------------------------------
+                                    162 ; Strings
+                                    163 ; -----------------------------------------------------------------------------
+                                    164 
+      000050                        165 _dev_strings:
+                                    166 
+                                    167 ; See http://www.usb.org/developers/docs/USB_LANGIDs.pdf for the full list.
+      000050                        168 string_descriptor_lang 0 0x0409 ; Language code 0x0409 (English, US)
+      000050                          1 _string0:
+      000050 04                       2 	.db	4
+      000051 03                       3 	.db	3
+      000052 09 04                    4 	.dw	>0x0409 + (<0x0409 * 0x100)
+                                    169 
+      000054                        170 string_descriptor_a 1,^"sigrok"
+      000054                          1 _string1:
+                           000006     2 	.nchr	len,"sigrok"
+      000054 0E                       3 	.db	len * 2 + 2
+      000055 03                       4 	.db	3
+                                      5 	.irpc	i,^"sigrok"
+                                      6 		.db	''i, 0
+                                      7 	.endm
+      000056 73 00                    1 		.db	's, 0
+      000058 69 00                    1 		.db	'i, 0
+      00005A 67 00                    1 		.db	'g, 0
+      00005C 72 00                    1 		.db	'r, 0
+      00005E 6F 00                    1 		.db	'o, 0
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Intel 8051), page 7.
+Hexadecimal [24-Bits]
+
+
+
+      000060 6B 00                    1 		.db	'k, 0
+      000062                        171 string_descriptor_a 2,^"fx2lafw"
+      000062                          1 _string2:
+                           000007     2 	.nchr	len,"fx2lafw"
+      000062 10                       3 	.db	len * 2 + 2
+      000063 03                       4 	.db	3
+                                      5 	.irpc	i,^"fx2lafw"
+                                      6 		.db	''i, 0
+                                      7 	.endm
+      000064 66 00                    1 		.db	'f, 0
+      000066 78 00                    1 		.db	'x, 0
+      000068 32 00                    1 		.db	'2, 0
+      00006A 6C 00                    1 		.db	'l, 0
+      00006C 61 00                    1 		.db	'a, 0
+      00006E 66 00                    1 		.db	'f, 0
+      000070 77 00                    1 		.db	'w, 0
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Intel 8051), page 8.
+Hexadecimal [24-Bits]
+
+
+
+      000072                         25 string_descriptor_a 3,^"Cypress FX2"
+      000072                          1 _string3:
+                           00000B     2 	.nchr	len,"Cypress FX2"
+      000072 18                       3 	.db	len * 2 + 2
+      000073 03                       4 	.db	3
+                                      5 	.irpc	i,^"Cypress FX2"
+                                      6 		.db	''i, 0
+                                      7 	.endm
+      000074 43 00                    1 		.db	'C, 0
+      000076 79 00                    1 		.db	'y, 0
+      000078 70 00                    1 		.db	'p, 0
+      00007A 72 00                    1 		.db	'r, 0
+      00007C 65 00                    1 		.db	'e, 0
+      00007E 73 00                    1 		.db	's, 0
+      000080 73 00                    1 		.db	's, 0
+      000082 20 00                    1 		.db	' , 0
+      000084 46 00                    1 		.db	'F, 0
+      000086 58 00                    1 		.db	'X, 0
+      000088 32 00                    1 		.db	'2, 0
+      00008A                         26 _dev_strings_end:
+      00008A 00 00                   27 	.dw	0x0000

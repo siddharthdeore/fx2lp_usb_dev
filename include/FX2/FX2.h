@@ -197,6 +197,21 @@ public:
         }
         return received_count;
     }
+
+    int ctrl_transfer(uint8_t request_type, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, unsigned char *data, uint16_t wLength, unsigned int timeout)
+    {
+        int ret = libusb_control_transfer(_handle, request_type, bRequest, wValue, wIndex, data, wLength, timeout);
+        if (ret < 0)
+        {
+            std::cout << "Failed : libusb_control_transfer\n";
+        }
+        return ret;
+    }
+    int bulk_transfer(unsigned char endpoint, unsigned char *data, int length, int *actual_length, unsigned int timeout)
+    {
+        int ret = libusb_bulk_transfer(_handle, endpoint, data, length, actual_length, timeout);
+        return ret;
+    }
 };
 
 #endif
