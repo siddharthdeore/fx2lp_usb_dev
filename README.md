@@ -18,3 +18,6 @@ mkdir build && cd build
 cmake ..
 make
 ```
+
+for fft2
+sudo apt install fftw-dev 

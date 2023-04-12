@@ -110,7 +110,7 @@ int main(int argc, char const *argv[])
     dev->print_devices();
 
     // prepare delay command
-    uint32_t SAMPLING_RATE = 6e6;
+    uint32_t SAMPLING_RATE = 1e6;
 
     uint8_t command_data[3];
     prepare_command(SAMPLING_RATE, command_data);
@@ -129,10 +129,12 @@ int main(int argc, char const *argv[])
     int actual_length = 0;
     while (runing)
     {
+        ret = dev->ctrl_transfer(EP2_CTRL_OUT, CMD_START, 0, 0, command_data, sizeof(command_data), USB_TIMEOUT);
+
         if (ret > 0)
         {
             actual_length = 0;
-            ret = dev->bulk_transfer(EP2_BULK_IN, buf, sizeof(buf), &actual_length, timeout);
+            ret = dev->bulk_transfer(EP2_BULK_IN, buf, sizeof(buf), &actual_length, 0);
             if (ret > -1)
             {
                 ctr++;
@@ -150,6 +152,15 @@ int main(int argc, char const *argv[])
                 }
                 // std::cout << actual_length << " " << ctr++<< std::endl;
             }
+                        now = std::chrono::high_resolution_clock::now();
+            // std::cout << ctr << " ";
+            ctr = 0;
+            // std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            //ret = dev->ctrl_transfer(EP2_CTRL_OUT, CMD_START, 0, 0, command_data, sizeof(command_data), USB_TIMEOUT);
+            double dt = ((now - prev).count() * 1e-9)*2;
+            std::cout << "Data rate (sps): " <<std::fixed<< actual_length / dt << std::endl;
+            prev = now;
+
         }
         else
         {
@@ -157,9 +168,9 @@ int main(int argc, char const *argv[])
             // std::cout << ctr << " ";
             ctr = 0;
             // std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            ret = dev->ctrl_transfer(EP2_CTRL_OUT, CMD_START, 0, 0, command_data, sizeof(command_data), USB_TIMEOUT);
-            double dt = ((now - prev).count() * 1e-9);
-            std::cout << "Data rate (Bps): " <<std::fixed<< actual_length / dt << std::endl;
+            //ret = dev->ctrl_transfer(EP2_CTRL_OUT, CMD_START, 0, 0, command_data, sizeof(command_data), USB_TIMEOUT);
+            double dt = ((now - prev).count() * 1e-9)*2;
+            std::cout << "Data rate (sps): " <<std::fixed<< actual_length / dt << std::endl;
             prev = now;
         }
     }
