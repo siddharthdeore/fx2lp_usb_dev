@@ -26,7 +26,8 @@ std::atomic<bool> runing(true);
 #define CMD_START_FLAGS_CLK_CTL2_POS 4
 #define CMD_START_FLAGS_WIDE_POS 5
 #define CMD_START_FLAGS_CLK_SRC_POS 6
-
+/* 6 delay states of up to 256 clock ticks */
+#define MAX_SAMPLE_DELAY (6 * 256)
 #define CMD_START_FLAGS_CLK_CTL2 (1 << CMD_START_FLAGS_CLK_CTL2_POS)
 #define CMD_START_FLAGS_SAMPLE_8BIT (0 << CMD_START_FLAGS_WIDE_POS)
 #define CMD_START_FLAGS_SAMPLE_16BIT (1 << CMD_START_FLAGS_WIDE_POS)
@@ -44,11 +45,11 @@ std::atomic<bool> runing(true);
 #define EP2_BULK_IN 2 | LIBUSB_ENDPOINT_IN
 #define EP2_CTRL_OUT LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_OUT
 
-static unsigned int to_bytes_per_ms(const uint32_t &samplerate)
+static unsigned int to_bytes_per_ms(const uint64_t &samplerate)
 {
     return samplerate / 1000;
 }
-static size_t get_buffer_size(const uint32_t &samplerate)
+static size_t get_buffer_size(const uint64_t &samplerate)
 {
     size_t s;
 
@@ -59,7 +60,7 @@ static size_t get_buffer_size(const uint32_t &samplerate)
     s = 1000 * to_bytes_per_ms(samplerate);
     return (s + 511) & ~511;
 }
-static unsigned int get_number_of_transfers(const uint32_t &samplerate)
+static unsigned int get_number_of_transfers(const uint64_t &samplerate)
 {
     unsigned int n;
 
@@ -71,7 +72,7 @@ static unsigned int get_number_of_transfers(const uint32_t &samplerate)
 
     return n;
 }
-static unsigned int get_timeout(const uint32_t &samplerate)
+static unsigned int get_timeout(const uint64_t &samplerate)
 {
     size_t total_size;
     unsigned int timeout;
@@ -80,20 +81,32 @@ static unsigned int get_timeout(const uint32_t &samplerate)
     return timeout + timeout / 4; /* Leave a headroom of 25% percent. */
 }
 
-void prepare_command(const std::size_t &sampling_rate, uint8_t *command_data)
+void prepare_command(const std::size_t &samplerate, uint8_t *command_data, const bool &sample_16 = true)
 {
     uint16_t delay = 0;
-    uint8_t flag = CMD_START_FLAGS_CLK_48MHZ;
+    uint8_t flag = 0;
     uint8_t delay_h = 0;
     uint8_t delay_l = 0;
 
-    if (FIRMWARE_FREQ_48MHz % sampling_rate == 0)
+    if (FIRMWARE_FREQ_48MHz % samplerate == 0)
     {
-        flag |= CMD_START_FLAGS_SAMPLE_16BIT;
-        delay = int(FIRMWARE_FREQ_48MHz / sampling_rate - 1);
-        if (delay > (6 * 256))
+        flag = CMD_START_FLAGS_CLK_48MHZ;
+        delay = int(FIRMWARE_FREQ_48MHz / samplerate - 1);
+        if (delay > MAX_SAMPLE_DELAY)
             delay = 0;
     }
+
+    if (delay == 0 && (FIRMWARE_FREQ_30MHz % samplerate == 0))
+    {
+        flag = CMD_START_FLAGS_CLK_30MHZ;
+        delay = (FIRMWARE_FREQ_30MHz / samplerate - 1);
+    }
+
+    if (delay < 0 || delay > MAX_SAMPLE_DELAY)
+    {
+        std::cout << "Unable to sample at " << samplerate << "Hz." << std::endl;
+    }
+    flag |= sample_16 ? CMD_START_FLAGS_SAMPLE_16BIT : CMD_START_FLAGS_SAMPLE_8BIT;
 
     command_data[0] = flag;
     command_data[1] = highByte(delay);
@@ -110,7 +123,7 @@ int main(int argc, char const *argv[])
     dev->print_devices();
 
     // prepare delay command
-    uint32_t SAMPLING_RATE = 1e6;
+    uint64_t SAMPLING_RATE = 8e6;
 
     uint8_t command_data[3];
     prepare_command(SAMPLING_RATE, command_data);
@@ -134,7 +147,8 @@ int main(int argc, char const *argv[])
         if (ret > 0)
         {
             actual_length = 0;
-            ret = dev->bulk_transfer(EP2_BULK_IN, buf, sizeof(buf), &actual_length, 0);
+
+            ret = dev->bulk_transfer(EP2_BULK_IN, buf, sizeof(buf), &actual_length, timeout);
             if (ret > -1)
             {
                 ctr++;
@@ -144,23 +158,21 @@ int main(int argc, char const *argv[])
                     if (last_data != data)
                     {
                         // std::cout << actual_length << " " << ctr++<<" ";
-                        // std::cout << std::bitset<8>(buf[i]) << " " <<std::bitset<8>(buf[i+1]) << std::endl;
+                        // std::cout << std::bitset<8>(buf[i]) << " " << std::bitset<8>(buf[i + 1]) << "\n";
                         last_data = data;
                     }
                     // if(i%100==0)
                     //     std::cout << std::bitset<8>(buf[i]) << " " <<std::bitset<8>(buf[i+1]) << std::endl;
                 }
-                // std::cout << actual_length << " " << ctr++<< std::endl;
+                std::cout << "Received length " << actual_length << std::endl;
             }
-                        now = std::chrono::high_resolution_clock::now();
-            // std::cout << ctr << " ";
-            ctr = 0;
+            now = std::chrono::high_resolution_clock::now();
+            std::cout << ctr << " ";
             // std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            //ret = dev->ctrl_transfer(EP2_CTRL_OUT, CMD_START, 0, 0, command_data, sizeof(command_data), USB_TIMEOUT);
-            double dt = ((now - prev).count() * 1e-9)*2;
-            std::cout << "Data rate (sps): " <<std::fixed<< actual_length / dt << std::endl;
+            // ret = dev->ctrl_transfer(EP2_CTRL_OUT, CMD_START, 0, 0, command_data, sizeof(command_data), USB_TIMEOUT);
+            double dt = ((now - prev).count() * 1e-9) * 2;
+            std::cout << "Data rate (sps): " << std::fixed << actual_length / dt << " time:" << dt<< std::endl;
             prev = now;
-
         }
         else
         {
@@ -168,9 +180,9 @@ int main(int argc, char const *argv[])
             // std::cout << ctr << " ";
             ctr = 0;
             // std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            //ret = dev->ctrl_transfer(EP2_CTRL_OUT, CMD_START, 0, 0, command_data, sizeof(command_data), USB_TIMEOUT);
-            double dt = ((now - prev).count() * 1e-9)*2;
-            std::cout << "Data rate (sps): " <<std::fixed<< actual_length / dt << std::endl;
+            // ret = dev->ctrl_transfer(EP2_CTRL_OUT, CMD_START, 0, 0, command_data, sizeof(command_data), USB_TIMEOUT);
+            double dt = ((now - prev).count() * 1e-9) * 2;
+            std::cout << "Data rate (sps): " << std::fixed << actual_length / dt << " time:" << dt<< std::endl;
             prev = now;
         }
     }
